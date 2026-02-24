@@ -3,7 +3,7 @@
  * Plugin Name:  IAPOST Groq
  * Plugin URI:   https://github.com/sergioparedes/iapost-groq
  * Description:  Genera artículos SEO completos con la API de Groq (LLaMA). Integra con Yoast SEO, crea bloques Gutenberg y gestiona meta social (OG + Twitter). Incluye promptbooks por tipo de contenido y rol periodístico.
- * Version:      1.0.0
+ * Version:      1.1.0
  * Requires at least: 6.0
  * Requires PHP: 7.4
  * Author:       Sergio Paredes & Claude Code
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'IAPOSTGROQ_VERSION', '1.0.0' );
+define( 'IAPOSTGROQ_VERSION', '1.1.0' );
 define( 'IAPOSTGROQ_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'IAPOSTGROQ_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'IAPOSTGROQ_PLUGIN_FILE', __FILE__ );
@@ -56,7 +56,9 @@ final class IAPOST_Groq {
 
     /** Activation hook. */
     public static function activate(): void {
+        add_option( 'iapostgroq_provider', 'groq' );
         add_option( 'iapostgroq_api_key', '' );
+        add_option( 'iapostgroq_openai_api_key', '' );
         add_option( 'iapostgroq_model', 'llama-3.3-70b-versatile' );
         add_option( 'iapostgroq_content_type', 'post_blog' );
         add_option( 'iapostgroq_journalist_role', 'generalista' );

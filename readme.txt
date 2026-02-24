@@ -4,7 +4,7 @@ Tags:               ai, groq, llama, seo, content generation, yoast, gutenberg, 
 Requires at least:  6.0
 Tested up to:       6.7
 Requires PHP:       7.4
-Stable tag:         1.0.0
+Stable tag:         1.1.0
 License:            GPL-2.0+
 License URI:        https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -108,6 +108,16 @@ El plugin no genera imágenes. Después de crear el borrador, ábrelo en el edit
 
 == Changelog ==
 
+= 1.1.0 =
+* Multi-proveedor: soporte para OpenAI (GPT-4o, GPT-4 Turbo, GPT-3.5) además de Groq
+* Ampliación de modelos Groq: DeepSeek R1, Qwen QwQ 32B, LLaMA 3.1 70B, Gemma 7B y más (10 modelos)
+* Switch de proveedor en configuración con selector de API key y modelos dinámico por proveedor
+* Corrección: primer H2 del artículo siempre diferente al título del post
+* Mejora SEO: densidad de keyword reducida a máximo 4 apariciones (antes 6)
+* Mejora SEO: anchor text de enlaces internos/externos nunca usa la keyword exacta
+* Mejora SEO: meta description genera la keyword exacta con plantilla y verificación interna
+* Prompt de meta description reforzado con comprobación obligatoria campo a campo
+
 = 1.0.0 =
 * Lanzamiento inicial
 * Generador de artículos SEO con API Groq (LLaMA 3.3 70B)
@@ -126,6 +136,9 @@ El plugin no genera imágenes. Después de crear el borrador, ábrelo en el edit
 * Generación automática de enlace externo e interno en el artículo
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+Añade soporte para OpenAI (GPT-4o y más), amplía los modelos de Groq a 10, y mejora la calidad SEO del contenido generado.
 
 = 1.0.0 =
 Primera versión estable. No hay actualizaciones previas.

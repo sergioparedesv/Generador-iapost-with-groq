@@ -255,10 +255,10 @@ class IAPOSTGROQ_Promptbooks {
                "REGLA D — VOCABULARIO:\n" .
                "Usa palabras del habla cotidiana. Si usas un tecnicismo, explícalo en la misma frase.\n\n" .
 
-               "ANCLA SEO INVARIABLE: La keyword \"" . $keyword . "\" es el eje de todo el contenido. " .
-               "Debe aparecer en el primer H2, en las primeras 100 palabras, y entre 4 y 6 veces en total. " .
-               "Superar 6 apariciones es keyword stuffing y perjudica el SEO. " .
-               "Su presencia debe ser siempre natural, nunca forzada.";
+               "ANCLA SEO INVARIABLE: La keyword \"" . $keyword . "\" es el eje del contenido. " .
+               "Debe aparecer: en el primer H2, en las primeras 100 palabras y MÁXIMO 4 veces en todo el texto (headings incluidos). " .
+               "Superar 4 apariciones es keyword stuffing y penaliza el SEO. " .
+               "Usa sinónimos y pronombres para el resto de referencias. Presencia siempre natural, nunca forzada.";
     }
 
     /** System prompt for SEO JSON (Call 1). */
@@ -270,8 +270,12 @@ class IAPOSTGROQ_Promptbooks {
 
         return "Eres un experto SEO. Responde SIEMPRE en JSON válido sin markdown.\n" .
                "Contexto: el contenido es de tipo \"" . $type_label . "\" y lo redacta un \"" . $role_label . "\".\n" .
-               "El título, slug, meta descripción y social post DEBEN reflejar ese tipo de contenido y ese tono.\n" .
-               "La meta descripción debe tener entre 110 y 138 caracteres (NUNCA superar 140).\n" .
-               "La keyword es el ancla SEO y DEBE aparecer en todos esos campos.";
+               "El título, slug, meta descripción y social post DEBEN reflejar ese tipo de contenido y ese tono.\n\n" .
+               "REGLA ABSOLUTA — META DESCRIPTION:\n" .
+               "El campo meta_description DEBE contener la keyword EXACTA (las mismas palabras, en el mismo orden, sin variaciones ni sinónimos).\n" .
+               "La keyword debe aparecer en los primeros 2/3 del texto de la meta descripción, no al final.\n" .
+               "Longitud: entre 110 y 138 caracteres (NUNCA superar 140).\n\n" .
+               "COMPROBACIÓN MENTAL OBLIGATORIA antes de emitir el JSON:\n" .
+               "Toma la cadena exacta del campo keyword. Localiza esa cadena dentro de meta_description. Si no la encuentras → reescribe meta_description hasta que esté.";
     }
 }

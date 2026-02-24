@@ -21,6 +21,7 @@
             this.initCustomPromptbooks();
             this.initTagsAutocomplete();
             this.initEditorTabs();
+            this.initProviderSwitch();
         },
 
         // ── Events ────────────────────────────────────────────────────────────
@@ -355,10 +356,12 @@
             this.setButton('#iapostgroq-btn-save-settings', true, IAPOSTGROQ.strings.saving);
 
             $.post(IAPOSTGROQ.ajax_url, {
-                action:  'iapostgroq_save_settings',
-                nonce:   IAPOSTGROQ.nonce,
-                api_key: $('#iapostgroq-api-key').val(),
-                model:   $('#iapostgroq-model-select').val()
+                action:         'iapostgroq_save_settings',
+                nonce:          IAPOSTGROQ.nonce,
+                provider:       $('input[name="iapostgroq-provider"]:checked').val() || 'groq',
+                api_key:        $('#iapostgroq-api-key').val(),
+                openai_api_key: $('#iapostgroq-openai-api-key').val(),
+                model:          $('#iapostgroq-model-select').val()
             })
             .done(function (response) {
                 var msg  = response.data ? response.data.message : IAPOSTGROQ.strings.error;
@@ -379,10 +382,12 @@
 
             // Save current values first so the test uses them
             $.post(IAPOSTGROQ.ajax_url, {
-                action:  'iapostgroq_save_settings',
-                nonce:   IAPOSTGROQ.nonce,
-                api_key: $('#iapostgroq-api-key').val(),
-                model:   $('#iapostgroq-model-select').val()
+                action:         'iapostgroq_save_settings',
+                nonce:          IAPOSTGROQ.nonce,
+                provider:       $('input[name="iapostgroq-provider"]:checked').val() || 'groq',
+                api_key:        $('#iapostgroq-api-key').val(),
+                openai_api_key: $('#iapostgroq-openai-api-key').val(),
+                model:          $('#iapostgroq-model-select').val()
             }).done(function () {
                 $.post(IAPOSTGROQ.ajax_url, { action: 'iapostgroq_test_api', nonce: IAPOSTGROQ.nonce })
                 .done(function (response) {
@@ -422,6 +427,45 @@
                 IAPOSTGROQ_UI.setSpinner('#iapostgroq-spinner-defaults', false);
                 IAPOSTGROQ_UI.setButton('#iapostgroq-btn-save-defaults', false, 'Guardar defaults');
             });
+        },
+
+        // ── Provider switch ───────────────────────────────────────────────────
+
+        initProviderSwitch: function () {
+            var $radios = $('input[name="iapostgroq-provider"]');
+            if (!$radios.length) return;
+
+            function syncUI(provider) {
+                if (provider === 'openai') {
+                    $('#iapostgroq-groq-key-row').hide();
+                    $('#iapostgroq-openai-key-row').show();
+                } else {
+                    $('#iapostgroq-openai-key-row').hide();
+                    $('#iapostgroq-groq-key-row').show();
+                }
+            }
+
+            $radios.on('change', function () {
+                var provider = $(this).val();
+                syncUI(provider);
+
+                // Rebuild model selector for the new provider
+                var $select = $('#iapostgroq-model-select');
+                var prevVal = $select.val();
+                var models  = (IAPOSTGROQ.models && IAPOSTGROQ.models[provider]) ? IAPOSTGROQ.models[provider] : {};
+                $select.empty();
+                $.each(models, function (value, label) {
+                    $select.append($('<option>').val(value).text(label));
+                });
+                // Restore previous selection if still valid in new provider
+                if ($select.find('option[value="' + prevVal + '"]').length) {
+                    $select.val(prevVal);
+                }
+            });
+
+            // Sync on page load
+            var initial = $('input[name="iapostgroq-provider"]:checked').val() || IAPOSTGROQ.provider || 'groq';
+            syncUI(initial);
         },
 
         // ── Custom promptbooks CRUD ───────────────────────────────────────────

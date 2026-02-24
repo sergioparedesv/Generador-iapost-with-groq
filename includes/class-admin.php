@@ -62,6 +62,8 @@ class IAPOSTGROQ_Admin {
         wp_localize_script( 'iapostgroq_ajax', 'IAPOSTGROQ', array(
             'ajax_url' => admin_url( 'admin-ajax.php' ),
             'nonce'    => wp_create_nonce( 'iapostgroq_nonce' ),
+            'models'   => IAPOSTGROQ_Groq_API::available_models(),
+            'provider' => get_option( 'iapostgroq_provider', 'groq' ),
             'strings'  => array(
                 'generating'    => 'Generando contenido…',
                 'rewriting'     => 'Re-redactando…',
@@ -219,12 +221,18 @@ class IAPOSTGROQ_Admin {
             wp_send_json_error( array( 'message' => 'Permisos insuficientes.' ), 403 );
         }
 
+        $provider        = sanitize_key( $_POST['provider'] ?? '' );
         $api_key         = sanitize_text_field( wp_unslash( $_POST['api_key'] ?? '' ) );
+        $openai_api_key  = sanitize_text_field( wp_unslash( $_POST['openai_api_key'] ?? '' ) );
         $model           = sanitize_text_field( wp_unslash( $_POST['model'] ?? '' ) );
         $content_type    = sanitize_key( $_POST['content_type'] ?? '' );
         $journalist_role = sanitize_key( $_POST['journalist_role'] ?? '' );
 
+        if ( in_array( $provider, array( 'groq', 'openai' ), true ) ) {
+            update_option( 'iapostgroq_provider', $provider );
+        }
         update_option( 'iapostgroq_api_key', $api_key );
+        update_option( 'iapostgroq_openai_api_key', $openai_api_key );
         if ( ! empty( $model ) ) {
             update_option( 'iapostgroq_model', $model );
         }
@@ -583,29 +591,54 @@ class IAPOSTGROQ_Admin {
     // ─── View: Tab API ────────────────────────────────────────────────────────
 
     private function render_tab_api(): void {
-        $api_key      = get_option( 'iapostgroq_api_key', '' );
-        $model        = get_option( 'iapostgroq_model', 'llama-3.3-70b-versatile' );
-        $saved_type   = get_option( 'iapostgroq_content_type', 'post_blog' );
-        $saved_role   = get_option( 'iapostgroq_journalist_role', 'generalista' );
-        $models       = array(
-            'llama-3.3-70b-versatile' => 'Llama 3.3 70B Versatile (recomendado)',
-            'llama-3.1-8b-instant'    => 'Llama 3.1 8B Instant (rápido)',
-            'mixtral-8x7b-32768'      => 'Mixtral 8x7B 32768',
-            'gemma2-9b-it'            => 'Gemma2 9B IT',
-        );
+        $provider         = get_option( 'iapostgroq_provider', 'groq' );
+        $api_key          = get_option( 'iapostgroq_api_key', '' );
+        $openai_api_key   = get_option( 'iapostgroq_openai_api_key', '' );
+        $model            = get_option( 'iapostgroq_model', 'llama-3.3-70b-versatile' );
+        $saved_type       = get_option( 'iapostgroq_content_type', 'post_blog' );
+        $saved_role       = get_option( 'iapostgroq_journalist_role', 'generalista' );
+        $all_models       = IAPOSTGROQ_Groq_API::available_models();
+        $active_models    = $all_models[ $provider ] ?? $all_models['groq'];
         $content_types    = IAPOSTGROQ_Promptbooks::get_all_content_types();
         $journalist_roles = IAPOSTGROQ_Promptbooks::get_all_journalist_roles();
         ?>
         <div class="iapostgroq-card">
-            <h2>Conexión</h2>
+            <h2>Proveedor de IA</h2>
             <table class="form-table" role="presentation">
                 <tr>
+                    <th scope="row">Proveedor</th>
+                    <td>
+                        <label style="margin-right:24px;">
+                            <input type="radio" name="iapostgroq-provider" value="groq"
+                                <?php checked( $provider, 'groq' ); ?> />
+                            <strong>Groq</strong>
+                            <span class="description" style="margin-left:4px;">— LLaMA, Mixtral, Gemma (gratuito)</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="iapostgroq-provider" value="openai"
+                                <?php checked( $provider, 'openai' ); ?> />
+                            <strong>OpenAI</strong>
+                            <span class="description" style="margin-left:4px;">— GPT-4o, GPT-4 (requiere cuenta de pago)</span>
+                        </label>
+                    </td>
+                </tr>
+                <tr id="iapostgroq-groq-key-row">
                     <th scope="row"><label for="iapostgroq-api-key">Groq API Key</label></th>
                     <td>
                         <input type="password" id="iapostgroq-api-key" class="regular-text"
                             value="<?php echo esc_attr( $api_key ); ?>" autocomplete="off" />
                         <p class="description">
-                            Obtén tu clave en <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>
+                            Obtén tu clave gratis en <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>
+                        </p>
+                    </td>
+                </tr>
+                <tr id="iapostgroq-openai-key-row">
+                    <th scope="row"><label for="iapostgroq-openai-api-key">OpenAI API Key</label></th>
+                    <td>
+                        <input type="password" id="iapostgroq-openai-api-key" class="regular-text"
+                            value="<?php echo esc_attr( $openai_api_key ); ?>" autocomplete="off" />
+                        <p class="description">
+                            Obtén tu clave en <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com/api-keys</a>
                         </p>
                     </td>
                 </tr>
@@ -613,7 +646,7 @@ class IAPOSTGROQ_Admin {
                     <th scope="row"><label for="iapostgroq-model-select">Modelo</label></th>
                     <td>
                         <select id="iapostgroq-model-select">
-                            <?php foreach ( $models as $value => $label ) : ?>
+                            <?php foreach ( $active_models as $value => $label ) : ?>
                                 <option value="<?php echo esc_attr( $value ); ?>" <?php selected( $model, $value ); ?>>
                                     <?php echo esc_html( $label ); ?>
                                 </option>
